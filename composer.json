@@ -1,0 +1,26 @@
+{
+    "name": "kstasik/magento2-module-vim",
+    "description": "Set of commands which are useful by vim",
+    "require": {
+        "php": "~5.5.0|~5.6.0|~7.0.0",
+        "magento/magento-composer-installer": "*",
+        "goetas-webservices/xsd-reader": "^0.2.5"
+    },
+    "type": "magento2-module",
+    "version": "0.0.1",
+    "extra": {
+        "map": [
+            [
+                "*",
+                "Kstasik/Vim"
+            ]
+        ]
+    },
+    "authors": [
+        {
+            "name": "Kacper Stasik",
+            "homepage": "http://stasik.eu/",
+            "role": "Developer"
+        }
+    ]
+}
