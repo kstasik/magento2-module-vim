@@ -3,5 +3,5 @@ namespace Kstasik\Vim\Model\Config;
 
 interface ProcessorInterface
 {
-    public function run($configDirectory, $realpath = null);
+    public function run(array $config);
 }

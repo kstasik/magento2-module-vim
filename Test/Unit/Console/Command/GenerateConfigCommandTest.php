@@ -44,24 +44,12 @@ class GenerateConfigCommandTest extends \PHPUnit_Framework_TestCase
     {
         $generator = $this->getMockBuilder(\Kstasik\Vim\Model\Config\Generator::class)
                      ->disableOriginalConstructor()
-                     ->setMethods(['run', 'setDirectory', 'setRealPath'])
+                     ->setMethods(['run'])
                      ->getMock();
         $generator
             ->expects($this->once())
             ->method('run')
             ->will($this->returnValue(true));
-
-        $generator
-            ->expects($this->once())
-            ->method('setDirectory')
-            ->with($this->anything())
-            ->will($this->returnSelf());
-
-        $generator
-            ->expects($this->once())
-            ->method('setRealpath')
-            ->with($this->anything())
-            ->will($this->returnSelf());
 
         $this->command = new GenerateConfigCommand($generator);
     }
@@ -87,7 +75,8 @@ class GenerateConfigCommandTest extends \PHPUnit_Framework_TestCase
         $commandTester = new CommandTester($this->command);
         $commandTester->execute([
                 GenerateConfigCommand::DIR_ARGUMENT => 'test',
-                '--'.GenerateConfigCommand::REAL_PATH_OPTION => 'test2'
+                '--'.GenerateConfigCommand::REAL_PATH_OPTION => 'test2',
+                '--'.GenerateConfigCommand::VIM_RUNTIME_OPTION => 'test3'
         ]);
 
         $arg1 = $commandTester->getInput()->getArgument(
@@ -101,10 +90,15 @@ class GenerateConfigCommandTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertEquals($arg2, 'test2');
+
+        $arg3 = $commandTester->getInput()->getOption(
+            GenerateConfigCommand::VIM_RUNTIME_OPTION
+        );
+
+        $this->assertEquals($arg3, 'test3');
     }
 
-    public function testResponse()
-    {
+    public function testResponse(){
         $commandTester = new CommandTester($this->command);
         $commandTester->execute([]);
 

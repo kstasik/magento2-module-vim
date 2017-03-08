@@ -4,27 +4,20 @@ namespace Kstasik\Vim\Model\Config\Processor;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\Filesystem\Driver\File;
-use Magento\Framework\App\Filesystem\DirectoryList;
 use Kstasik\Vim\Model\Config\ProcessorInterface;
 use GoetasWebservices\XML\XSDReader\SchemaReader;
 
 class Xsd implements LoggerAwareInterface, ProcessorInterface
 {
     /**
+     * @var GoetasWebservices\XML\XSDReader\SchemaReader
+     */
+    protected $reader;
+
+    /**
      * @var Psr\Log\LoggerInterface
      */
     protected $logger;
-
-    /**
-     * @var \Magento\Framework\App\Utility\Files
-     */
-    private $filesUtility;
-
-    /**
-     * @var \Magento\Framework\Config\Dom\UrnResolver
-     */
-    private $urnResolver;
 
     /**
      * @var \Magento\Framework\Filesystem\Directory\ReadFactory
@@ -36,21 +29,35 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
      */
     private $dirList;
 
+    /**
+     * @var \Magento\Framework\Filesystem\Driver\File
+     */
+    private $file;
+
+    /**
+     * @var \Kstasik\Vim\Model\Config\Provider\Urn
+     */
+    private $urnProvider;
+
     public function __construct(
-        DirectoryList $dirList,
-        \Magento\Framework\App\Utility\Files $filesUtility,
-        \Magento\Framework\Config\Dom\UrnResolver $urnResolver,
-        \Magento\Framework\Filesystem\Directory\ReadFactory $readFactory
+        \Kstasik\Vim\Model\Config\Provider\Urn $urnProvider,
+        \GoetasWebservices\XML\XSDReader\SchemaReader $reader,
+        \Magento\Framework\Filesystem\Driver\File $file,
+        \Magento\Framework\App\Filesystem\DirectoryList $dirList
     ) {
         $this->logger = new \Psr\Log\NullLogger();
+
+        $this->reader = $reader;
+        $this->file = $file;
         $this->dirList = $dirList;
-        $this->filesUtility = $filesUtility;
-        $this->urnResolver = $urnResolver;
-        $this->readFactory = $readFactory;
+        $this->urnProvider = $urnProvider;
     }
 
-    public function run($configDirectory, $realpath = null)
+    public function run(array $config)
     {
+        $configDirectory = $config[\Kstasik\Vim\Model\Config\Generator::DIRECTORY_CONFIG];
+        $realpath = $config[\Kstasik\Vim\Model\Config\Generator::REALPATH_CONFIG] ?: null;
+
         $configFilePath = rtrim($configDirectory, '/').'/xsd';
 
         $this->logger->notice('xsd configuration directory: '.$configFilePath);
@@ -59,10 +66,13 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
             $this->logger->notice('configuration real path in IDE context: '.$realpath);
         }
 
-        $file = new File;
-        $file->createDirectory($configFilePath);
+        $this->file->createDirectory($configFilePath);
 
-        $dictionary = $this->getUrnDictionary();
+        $this->logger->notice('searching for xml files with xsd defined in the project');
+
+        $dictionary = $this->urnProvider->getDictionary();
+
+        $this->logger->notice('search done');
 
         $map     = array();
         foreach ($dictionary as $name => $filePath) {
@@ -70,12 +80,12 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
 
             // create directory if needed
             $dir = $configFilePath.'/'.pathinfo($newfile, PATHINFO_DIRNAME);
-            if (!$file->isExists($dir)) {
-                $file->createDirectory($dir);
+            if (!$this->file->isExists($dir)) {
+                $this->file->createDirectory($dir);
             }
 
             // create xsd
-            $file->filePutContents($configFilePath.'/'.$newfile, $file->fileGetContents($filePath));
+            $this->file->filePutContents($configFilePath.'/'.$newfile, $this->file->fileGetContents($filePath));
 
             // create new mapping
             $map[$name] = realpath($configFilePath.'/'.$newfile);
@@ -99,7 +109,7 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
         );
 
         // save ide mapping
-        $file->filePutContents($configFilePath.'/namespaces.map', json_encode($ideMap));
+        $this->file->filePutContents($configFilePath.'/namespaces.map', json_encode($ideMap));
 
         // to ide map
         $toIdeMap =
@@ -122,19 +132,18 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
     {
         $this->logger->notice('generating XSD validator files .vim');
 
-        $file = new File;
-        $file->createDirectory($configFilePath.'/autoload');
+        $this->file->createDirectory($configFilePath.'/autoload');
 
         foreach ($dictionary as $name => $filePath) {
             $newfile = str_replace(':', '/', $name);
 
-            $reader = new SchemaReader();
+            $reader = clone $this->reader;
             $schema = $reader->readFile($configFilePath.'/'.$newfile);
 
             $tree = array();
-            $this->buildTree($tree, $schema);
+            $this->getVimSchemaStructure($tree, $schema);
 
-            file_put_contents(
+            $this->file->filePutContents(
                 $configFilePath.'/autoload/magento2'.md5($name).'.vim',
                 PHP_EOL.'let g:xmldata_magento2'.md5($name).' = '.json_encode($tree)
             );
@@ -143,62 +152,21 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
 
     private function mapConfigFiles($configFilePath, $map)
     {
-        $file = new File;
 
-        $result = $file->readDirectoryRecursively($configFilePath);
+        $result = $this->file->readDirectoryRecursively($configFilePath);
         foreach ($result as $filePath) {
-            if ($file->isFile($filePath) && strpos($filePath, 'xsd') !== false) {
-                $content = $file->fileGetContents($filePath);
+            if ($this->file->isFile($filePath) && strpos($filePath, 'xsd') !== false) {
+                $content = $this->file->fileGetContents($filePath);
 
                 // map paths
                 $content = strtr($content, $map);
 
-                $file->filePutContents($filePath, $content);
+                $this->file->filePutContents($filePath, $content);
             }
         }
     }
 
-    private function getUrnDictionary()
-    {
-        $this->logger->notice('search for xml files with xsd defined in the project');
-
-        $files = $this->filesUtility->getXmlCatalogFiles('*.xml');
-        $files = array_merge($files, $this->filesUtility->getXmlCatalogFiles('*.xsd'));
-
-        $urns = [];
-        foreach ($files as $file) {
-            $fileDir = dirname($file[0]);
-            $fileName = basename($file[0]);
-            $read = $this->readFactory->create($fileDir);
-            $content = $read->readFile($fileName);
-            $matches = [];
-            preg_match_all('/schemaLocation="(urn\:magento\:[^"]*)"/i', $content, $matches);
-            if (isset($matches[1])) {
-                $urns = array_merge($urns, $matches[1]);
-            }
-        }
-        $urns = array_unique($urns);
-        $paths = [];
-        foreach ($urns as $urn) {
-            try {
-                $paths[$urn] = $this->urnResolver->getRealPath($urn);
-            } catch (\Exception $e) {
-
-            }
-        }
-
-        $this->logger->notice('search done');
-
-        return $paths;
-    }
-
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-        return $this;
-    }
-
-    protected function buildTree(array &$tree, $root, $parents = array())
+    protected function getVimSchemaStructure(array &$tree, $root, $parents = array())
     {
         $parent = end($parents);
 
@@ -217,7 +185,7 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
                       //  echo get_class($choice);
                         $tree[$parent][0][] = $choice->getName();
 
-                        $this->buildTree($tree, $choice->getType(), $parents);
+                        $this->getVimSchemaStructure($tree, $choice->getType(), $parents);
                         //$data['elements'][$choice->getName()] = $this->getOptions($choice->getType(), $parents);
 
 
@@ -250,7 +218,7 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
                                 array(), // map of attributes and values as list
                             );
 
-                            $this->buildTree($tree, $type, $parents);
+                            $this->getVimSchemaStructure($tree, $type, $parents);
                             //$data['elements'][$element->getName()] = $this->getOptions($type, $parents);
                         } else {
                             $tree[$element->getName()] = array();
@@ -270,5 +238,11 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
         } else {
             throw new \Exception('xsd parsing library still doesnt support some xsd tags');
         }
+    }
+
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+        return $this;
     }
 }

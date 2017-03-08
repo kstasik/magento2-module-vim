@@ -26,5 +26,5 @@ Vim module for magento2
 ```
 
 ```
-docker exec -it magento2_phpfpmd_1 php /var/www/bin/magento dev:vim:generate-config --real-path='/Users/USERNAME/Documents/magento2/www/'
+docker exec -it magento2_phpfpmd_1 php /var/www/bin/magento dev:vim:generate-config --real-path=`pwd`'/www' --vim-runtime=`vim -e -T dumb --cmd 'exe "set t_cm=\<C-M>"|echo $VIMRUNTIME|quit' | tr -d '\015' `
 ```

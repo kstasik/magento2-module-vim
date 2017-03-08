@@ -12,7 +12,8 @@
         <arguments>
             <argument name="processors" xsi:type="array">
                 <item name="xsd" xsi:type="object">Kstasik\Vim\Model\Config\Processor\Xsd</item>
-                <item name="links" xsi:type="object">Kstasik\Vim\Model\Config\Processor\Links</item>
+                <item name="install" xsi:type="object">Kstasik\Vim\Model\Config\Processor\Install</item>
+                <item name="variables" xsi:type="object">Kstasik\Vim\Model\Config\Processor\Variables</item>
             </argument>
         </arguments>
     </type>

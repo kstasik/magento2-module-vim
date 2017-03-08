@@ -18,6 +18,12 @@ use Magento\Framework\ObjectManagerInterface;
  */
 class Generator implements LoggerAwareInterface
 {
+    const DIRECTORY_CONFIG = 'directory';
+
+    const REALPATH_CONFIG = 'realpath';
+
+    const VIMRUNTIME_CONFIG = 'vimruntime';
+
     /**
      * @var Psr\Log\LoggerInterface
      */
@@ -29,14 +35,13 @@ class Generator implements LoggerAwareInterface
     protected $processors;
 
     /**
-     * @var string
+     * @var array
      */
-    protected $directory;
-
-    /**
-     * @var string
-     */
-    protected $realpath;
+    protected $default = array(
+            self::DIRECTORY_CONFIG => '.vimconfig',
+            self::REALPATH_CONFIG => null,
+            self::VIMRUNTIME_CONFIG => null
+        );
 
     /**
      * __construct
@@ -48,20 +53,25 @@ class Generator implements LoggerAwareInterface
     public function __construct(array $processors)
     {
         $this->logger     = new \Psr\Log\NullLogger();
-        $this->directory  = '.vimconfig';
         $this->processors = $processors;
     }
 
-    public function run()
+    public function run($config)
     {
-        if (empty($this->directory)) {
+        if (empty($config[self::DIRECTORY_CONFIG])) {
             throw new \Exception('Directory name can\'t be empty');
         }
 
-        $this->logger->notice(sprintf('directory: %s', $this->directory));
+        $config = array_merge($this->default, array_filter($config));
 
-        if ($this->realpath) {
-            $this->logger->notice(sprintf('real path: %s', $this->realpath));
+        $this->logger->notice(sprintf('directory: %s', $config[self::DIRECTORY_CONFIG]));
+
+        if ($config[self::REALPATH_CONFIG]) {
+            $this->logger->notice(sprintf('real path: %s', $config[self::REALPATH_CONFIG]));
+        }
+
+        if ($config[self::VIMRUNTIME_CONFIG]) {
+            $this->logger->notice(sprintf('vim runtime: %s', $config[self::VIMRUNTIME_CONFIG]));
         }
 
         foreach ($this->processors as $processor) {
@@ -72,33 +82,16 @@ class Generator implements LoggerAwareInterface
                 throw new \Exception(sprintf('Processor "%s" doesnt inherit LoggerAwareInterface and ProcessorInterface', get_class($processor)));
             }
 
-            $this->logger->notice(sprintf('running processor: %s', get_class($processor)));
+            $this
+                ->logger
+                ->notice(sprintf('running processor: %s', get_class($processor)));
 
             $processor
                 ->setLogger($this->logger);
 
             $processor
-                ->run($this->directory, $this->realpath);
+                ->run($config);
         }
-    }
-
-    /**
-     * setDirectory
-     *
-     * @param mixed $directory Directory name
-     *
-     * @return self
-     */
-    public function setDirectory($directory)
-    {
-        $this->directory = $directory;
-        return $this;
-    }
-
-    public function setRealpath($path)
-    {
-        $this->realpath = $path;
-        return $this;
     }
 
     public function setLogger(LoggerInterface $logger)

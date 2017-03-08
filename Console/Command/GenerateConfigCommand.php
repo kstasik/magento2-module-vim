@@ -93,9 +93,11 @@ class GenerateConfigCommand extends Command
         $this
             ->generator
             ->setLogger($logger)
-            ->setDirectory($input->getArgument(self::DIR_ARGUMENT))
-            ->setRealpath($input->getOption(self::REAL_PATH_OPTION))
-            ->run();
+            ->run(array(
+                Generator::DIRECTORY_CONFIG  => $input->getArgument(self::DIR_ARGUMENT),
+                Generator::REALPATH_CONFIG   => $input->getOption(self::REAL_PATH_OPTION),
+                Generator::VIMRUNTIME_CONFIG => $input->getOption(self::VIM_RUNTIME_OPTION)
+            ));
 
         $output->writeln('Config files generated!');
     }
