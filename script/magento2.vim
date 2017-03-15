@@ -28,7 +28,8 @@ fu! Magento2Init(homePath)
   augroup END
 
   " tmux & tests
-  nmap <Leader>rt :call Magento2RunTest()<CR>
+  nmap <Leader>rt :call Magento2RunTest('Unit')<CR>
+  nmap <Leader>ri :call Magento2RunTest('Integration')<CR>
   nmap <Leader>ts :call Magento2TestSummary()<CR>
 
 endfun
@@ -110,12 +111,17 @@ fu! Magento2ValidateCs()
 endfun
 
 
-fu! Magento2RunTest()
+fu! Magento2RunTest(mydir)
   if expand("%:p") =~ "app/code"
     let l:parts = split(expand("%:p"), "app/code")
-    let l:relative = l:parts[0]."app/code/".join(split(l:parts[1], '/')[0:1], '/').'/Test/'
+    let l:relative = l:parts[0]."app/code/".join(split(l:parts[1], '/')[0:1], '/').'/Test/'.a:mydir.'/'
+    let l:conf = 'unit/phpunit.xml.dist'
 
-    execute "silent !tmux send-keys -t bottom C-z '".g:PHP_PATH." ".Magento2MapDir(g:MAGENTO_DIR."/vendor/bin/phpunit")." -c ".Magento2MapDir(g:MAGENTO_DIR."/dev/tests/unit/phpunit.xml.dist")." ".Magento2MapDir(l:relative)."' Enter"
+    if a:mydir == 'Integration'
+      let l:conf = 'integration/phpunit.xml.dist'
+    endif
+
+    execute "silent !tmux send-keys -t bottom C-z '".g:PHP_PATH." ".Magento2MapDir(g:MAGENTO_DIR."/vendor/bin/phpunit")." -c ".Magento2MapDir(g:MAGENTO_DIR."/dev/tests/".l:conf)." ".Magento2MapDir(l:relative)."' Enter"
     redr!
   endif
 endfun
