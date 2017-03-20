@@ -164,12 +164,146 @@ class XsdTest extends \PHPUnit_Framework_TestCase
             </xs:schema>'
                 ),
                 [
-                    'myElement' => [[], []],
+                    'myElement' => [['el1'], []],
                     'el1' => []
                 ]
             ]
         ];
+    }
 
+    public function getVimInheritedSchemaValidationData()
+    {
+        $reader = new SchemaReader();
+
+        return [
+            'simple test' => [
+                $reader->readString(
+                    '
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                <xs:complexType name="argumentType" abstract="true" mixed="true">
+                    <xs:attribute name="name" use="required"/>
+                </xs:complexType>
+
+                <xs:complexType name="array" mixed="true">
+                    <xs:complexContent>
+                        <xs:extension base="argumentType">
+                            <xs:sequence>
+                                <xs:element name="item" type="argumentType" minOccurs="0" maxOccurs="unbounded">
+                                    <xs:key name="itemName">
+                                        <xs:selector xpath="item"></xs:selector>
+                                        <xs:field xpath="@name"></xs:field>
+                                    </xs:key>
+                                </xs:element>
+                            </xs:sequence>
+                        </xs:extension>
+                    </xs:complexContent>
+                </xs:complexType>
+
+                <xs:complexType name="object">
+                    <xs:complexContent>
+                        <xs:extension base="argumentType"/>
+                    </xs:complexContent>
+                </xs:complexType>
+
+                <xs:complexType name="argumentsType">
+                    <xs:sequence>
+                        <xs:element name="argument" type="argumentType" minOccurs="1" maxOccurs="unbounded">
+                            <xs:key name="argumentItemName">
+                                <xs:selector xpath="item"></xs:selector>
+                                <xs:field xpath="@name"></xs:field>
+                            </xs:key>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:schema>',
+                    'http://www.example.com/types.xsd'
+                ),
+                $reader->readString(
+                    '
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+                <xs:redefine schemaLocation="http://www.example.com/types.xsd">
+                    <xs:complexType name="argumentType" abstract="true" mixed="false">
+                        <xs:complexContent>
+                            <xs:extension base="argumentType" />
+                        </xs:complexContent>
+                    </xs:complexType>
+
+                    <xs:complexType name="object">
+                        <xs:complexContent>
+                            <xs:extension base="object">
+                                <xs:attribute name="shared" use="optional" type="xs:boolean"/>
+                            </xs:extension>
+                        </xs:complexContent>
+                    </xs:complexType>
+                </xs:redefine>
+
+                <xs:element name="config">
+                    <xs:complexType>
+                        <xs:choice maxOccurs="unbounded">
+                            <xs:element name="type" type="typeType" minOccurs="0" maxOccurs="unbounded">
+                                <xs:unique name="uniqueTypeParam">
+                                    <xs:selector xpath="param" />
+                                    <xs:field xpath="@name" />
+                                </xs:unique>
+                            </xs:element>
+                        </xs:choice>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:complexType name="typeType">
+                    <xs:choice maxOccurs="unbounded">
+                        <xs:element name="arguments" type="argumentsType" minOccurs="0" maxOccurs="1">
+                            <xs:key name="argumentName">
+                                <xs:selector xpath="argument"></xs:selector>
+                                <xs:field xpath="@name"></xs:field>
+                            </xs:key>
+                        </xs:element>
+                        <xs:element name="plugin" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+                    </xs:choice>
+                    <xs:attribute name="name" type="xs:string" use="required" />
+                    <xs:attribute name="shared" type="xs:boolean" use="optional" />
+                </xs:complexType>
+
+            </xs:schema>'
+                ),
+                [
+                    'config' => [['type'], []],
+                    'type' => [['arguments','plugin'], ['name' => [], 'shared' => []]],
+                    'arguments' => [['argument'], []],
+                    'argument' => [['item'], ['name' => []]],
+                    'plugin' => [],
+                    'item' => [['item'], ['name' => []]]
+                ]
+            ]
+        ];
+
+    }
+
+    /**
+     *
+     * @dataProvider getVimInheritedSchemaValidationData
+     */
+    public function testVimInheritedSchemaStructure(
+        \GoetasWebservices\XML\XSDReader\Schema\Schema $remoteSchema,
+        \GoetasWebservices\XML\XSDReader\Schema\Schema $schema,
+        $expected
+    ) {
+        $class = new \ReflectionClass('\Kstasik\Vim\Model\Config\Processor\Xsd');
+        $method = $class->getMethod('getVimSchemaStructure');
+        $method->setAccessible(true);
+
+        $result = [];
+
+        $method->invokeArgs(
+            $this->processor,
+            [
+                &$result,
+                $schema
+            ]
+        );
+
+        $this->assertEquals($expected, $result);
     }
 
     /**

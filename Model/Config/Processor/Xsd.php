@@ -170,9 +170,16 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
     {
         $parent = end($parents);
 
+        if (method_exists($root, 'isAbstract') && $root->isAbstract()) {
+            foreach ($root->getSchema()->getTypes() as $type) {
+                if ($type->getExtension() && $type->getExtension()->getBase() == $root) {
+                    $this->getVimSchemaStructure($tree, $type, $parents);
+                }
+            }
+        }
+
         if (method_exists($root, 'getElements')) {
             foreach ($root->getElements() as $element) {
-
                 if ($element instanceof \GoetasWebservices\XML\XSDReader\Schema\Element\GroupRef) {
                     /* @var $element \GoetasWebservices\XML\XSDReader\Schema\Element\GroupRef */
 //                    $parents[] = $element->getName();
@@ -181,6 +188,7 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
    //                 var_dump($element->getName());
 
                     /* @var $choice \GoetasWebservices\XML\XSDReader\Schema\Element\Element */
+                    xdebug_break();
                     foreach ($element->getElements() as $choice) {
                       //  echo get_class($choice);
                         $tree[$parent][0][] = $choice->getName();
@@ -213,15 +221,22 @@ class Xsd implements LoggerAwareInterface, ProcessorInterface
 
                             $parents[] = $element->getName();
 
-                            $tree[$element->getName()] = array(
-                                array(), // list of children
-                                array(), // map of attributes and values as list
-                            );
+                            if (!isset($tree[$element->getName()])) {
+                                $tree[$element->getName()] = array(
+                                    array(), // list of children
+                                    array(), // map of attributes and values as list
+                                );
+                            }
 
                             $this->getVimSchemaStructure($tree, $type, $parents);
                             //$data['elements'][$element->getName()] = $this->getOptions($type, $parents);
                         } else {
+                            if ($parent) {
+                                $tree[$parent][0][] = $element->getName();
+                            }
+
                             $tree[$element->getName()] = array();
+
                             //$data['elements'][$element->getName()] = 'simple';
                         }
                     }
