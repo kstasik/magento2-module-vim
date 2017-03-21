@@ -4,6 +4,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="generate_config" xsi:type="object">Kstasik\Vim\Console\Command\GenerateConfigCommand</item>
+                <item name="autocomplete" xsi:type="object">Kstasik\Vim\Console\Command\AutocompleteCommand</item>
             </argument>
         </arguments>
     </type>

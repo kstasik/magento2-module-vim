@@ -21,7 +21,7 @@ fu! Magento2Init(homePath)
 
     " xsd
     autocmd BufWritePost * call Magento2ValidateXml()
-    autocmd BufReadPost * call Magento2AutocompleteXml()
+    autocmd BufEnter * call Magento2AutocompleteXml()
 
     " phpcs support
     autocmd BufWritePost * call Magento2ValidateCs()
@@ -188,4 +188,70 @@ fu! Magento2AutocompleteXml()
     let b:cmd = ":XMLns magento2".b:hash
     exe b:cmd
   endif
+
+  setlocal ofu=magento2#XmlCompleteTags
 endfun
+
+function! magento2#XmlCompleteTags(findstart, base)
+  let l:completeRes = xmlcomplete#CompleteTags(a:findstart, a:base)
+
+  if type(l:completeRes) == 0
+    return l:completeRes
+  endif
+
+  if len(l:completeRes) == 0
+    let l:context = magento2#GetContext()
+    if l:context != {}
+      if a:base
+        let l:context["base"] = a:base
+      endif
+
+      let b:cmd = g:PHP_PATH." ".Magento2MapDir(g:MAGENTO_DIR."/bin/magento")." dev:vim:autocomplete"
+
+      let l:map = items(l:context)
+      for row in l:map
+        let b:cmd = b:cmd." --".row[0]."='".row[1]."'"
+      endfor
+
+      return ["command", b:cmd, a:findstart, a:base]
+
+  "   silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
+  "   return eval(b:result)
+    endif
+
+    return []
+  endif
+
+  return l:completeRes
+endfunction
+
+function! magento2#GetContext()
+  let context = {}
+
+	let curline = line('.')
+  let line = getline('.')
+  let l:parts = split(expand("%:p"), "/etc/")
+
+  if len(l:parts) > 1
+    let context["file"] = l:parts[1]
+    let start = col('.') - 1
+
+    if line[start] == '"' || line[start-1] == '"'
+      let l:prefix = line[0:start-1]
+      let l:attribute = matchlist(l:prefix, ' \([^ ]*\)="$')
+
+      let context["attribute"] = l:attribute[1]
+    endif
+
+    if line =~ '<[^>]* [^>]*>'
+      let l:tag = matchlist(line, '<\([^>]\{-}\) ')
+      let context["tag"] = l:tag[1]
+    elseif line =~ '<[^>]*>'
+      let l:tag = matchlist(line, '<\([^>]*\)>')
+      let context["tag"] = l:tag[1]
+    endif
+  endif
+
+  " context["namespace"] =
+  return context
+endfunction
