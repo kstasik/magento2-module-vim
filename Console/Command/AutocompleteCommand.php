@@ -21,6 +21,7 @@ use Kstasik\Vim\Model\Config\Generator;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Input\InputOption;
 use Psr\Log\LogLevel;
+use Kstasik\Vim\Model\Autocomplete;
 
 /**
  * GenerateConfigCommand
@@ -36,9 +37,19 @@ class AutocompleteCommand extends Command
 {
     const COMMAND_NAME = 'dev:vim:autocomplete';
 
-    public function __construct()
+    const TAG_OPTION = 'tag';
+
+    const FILE_OPTION = 'file';
+
+    const ATTRIBUTE_OPTION = 'attribute';
+
+    protected $autocomplete;
+
+    public function __construct(Autocomplete $autocomplete)
     {
         parent::__construct(self::COMMAND_NAME);
+
+        $this->autocomplete = $autocomplete;
     }
 
     /**
@@ -50,7 +61,11 @@ class AutocompleteCommand extends Command
     {
         $this
             ->setName(self::COMMAND_NAME)
-            ->setDescription('Returns a list for vim omnicomplete');
+            ->setDescription('Returns a list for vim omnicomplete')
+            ->addOption(self::TAG_OPTION, null, InputOption::VALUE_OPTIONAL, 'XML tag')
+            ->addOption(self::FILE_OPTION, null, InputOption::VALUE_OPTIONAL, 'Filename with relative path')
+            ->addOption(self::ATTRIBUTE_OPTION, null, InputOption::VALUE_OPTIONAL, 'XML attribute argument')
+            ;
     }
 
     /**
@@ -63,6 +78,8 @@ class AutocompleteCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeln('["test1","test2","test3"]');
+        $result = $this->autocomplete->complete();
+
+        $output->writeln(json_encode($result));
     }
 }

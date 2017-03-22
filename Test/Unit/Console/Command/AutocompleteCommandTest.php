@@ -11,6 +11,7 @@ namespace Kstasik\Vim\Test\Unit\Console\Command;
 
 use Symfony\Component\Console\Tester\CommandTester;
 use Kstasik\Vim\Console\Command\AutocompleteCommand;
+use Kstasik\Vim\Model\Autocomplete;
 
 class AutocompleteCommandTest extends \PHPUnit_Framework_TestCase
 {
@@ -21,6 +22,8 @@ class AutocompleteCommandTest extends \PHPUnit_Framework_TestCase
      */
     private $command;
 
+    private $autocompleteMock;
+
     /**
      * setUp
      *
@@ -28,7 +31,10 @@ class AutocompleteCommandTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $this->command = new AutocompleteCommand();
+        $this->autocompleteMock =
+            $this->getMockBuilder('\Kstasik\Vim\Model\Autocomplete')->getMock();
+
+        $this->command = new AutocompleteCommand($this->autocompleteMock);
     }
 
     public function testName()

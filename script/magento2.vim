@@ -213,10 +213,15 @@ function! magento2#XmlCompleteTags(findstart, base)
         let b:cmd = b:cmd." --".row[0]."='".row[1]."'"
       endfor
 
-      return ["command", b:cmd, a:findstart, a:base]
+  "    return ["command", b:cmd, a:findstart, a:base]
 
-  "   silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
-  "   return eval(b:result)
+      silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
+
+      if b:result =~ "^\["
+        return eval(b:result)
+      else
+        echom b:cmd
+      endif
     endif
 
     return []
@@ -243,15 +248,30 @@ function! magento2#GetContext()
       let context["attribute"] = l:attribute[1]
     endif
 
-    if line =~ '<[^>]* [^>]*>'
-      let l:tag = matchlist(line, '<\([^>]\{-}\) ')
-      let context["tag"] = l:tag[1]
-    elseif line =~ '<[^>]*>'
-      let l:tag = matchlist(line, '<\([^>]*\)>')
-      let context["tag"] = l:tag[1]
-    endif
+    while curline > 0
+      let line = getline(curline)
+
+      if line =~ '<[^>]* [^>]*>'
+        let l:tag = matchlist(line, '<\([^>]\{-}\) ')
+        let context["tag"] = l:tag[1]
+        break
+      elseif line =~ '<[^>]*>'
+        let l:tag = matchlist(line, '<\([^>]*\)>')
+        let context["tag"] = l:tag[1]
+        break
+      elseif line =~ '<[^ ]* '
+        let l:tag = matchlist(line, '<\([^ ]*\) ')
+        let context["tag"] = l:tag[1]
+        break
+      endif
+
+      let curline -= 1
+    endwhile
   endif
 
-  " context["namespace"] =
-  return context
+  if has_key(context, "tag")
+    return context
+  endif
+
+  return {}
 endfunction
