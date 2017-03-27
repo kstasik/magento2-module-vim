@@ -193,6 +193,58 @@ fu! Magento2AutocompleteXml()
 endfun
 
 function! magento2#XmlCompleteTags(findstart, base)
+  if a:findstart
+    " locate the start of the word
+    let curline = line('.')
+    let line = getline('.')
+    let start = col('.') - 1
+    let compl_begin = col('.') - 2
+
+    while start >= 0 && line[start - 1] =~ '\(\k\|[:.-]\|\\\)'
+      let start -= 1
+    endwhile
+
+    if start >= 0 && line[start - 1] =~ '&'
+      let b:entitiescompl = 1
+      let b:compl_context = ''
+      return start
+    endif
+
+    let b:compl_context = getline('.')[0:(compl_begin)]
+    if b:compl_context !~ '<[^>]*$'
+      " Look like we may have broken tag. Check previous lines. Up to
+      " 10?
+      let i = 1
+      while 1
+        let context_line = getline(curline-i)
+        if context_line =~ '<[^>]*$'
+          " Yep, this is this line
+          let context_lines = getline(curline-i, curline-1) + [b:compl_context]
+          let b:compl_context = join(context_lines, ' ')
+          break
+        elseif context_line =~ '>[^<]*$' || i == curline
+          " Normal tag line, no need for completion at all
+          " OR reached first line without tag at all
+          let b:compl_context = ''
+          break
+        endif
+        let i += 1
+      endwhile
+      " Make sure we don't have counter
+      unlet! i
+    endif
+    let b:compl_context = matchstr(b:compl_context, '.*\zs<.*')
+
+    " Make sure we will have only current namespace
+    unlet! b:xml_namespace
+    let b:xml_namespace = matchstr(b:compl_context, '^<\zs\k*\ze:')
+    if b:xml_namespace == ''
+      let b:xml_namespace = 'DEFAULT'
+    endif
+
+    return start
+  endif
+
   let l:completeRes = xmlcomplete#CompleteTags(a:findstart, a:base)
 
   if type(l:completeRes) == 0
@@ -202,7 +254,7 @@ function! magento2#XmlCompleteTags(findstart, base)
   if len(l:completeRes) == 0
     let l:context = magento2#GetContext()
     if l:context != {}
-      if a:base
+      if !empty(a:base)
         let l:context["base"] = a:base
       endif
 
@@ -213,7 +265,7 @@ function! magento2#XmlCompleteTags(findstart, base)
         let b:cmd = b:cmd." --".row[0]."='".row[1]."'"
       endfor
 
-  "    return ["command", b:cmd, a:findstart, a:base]
+      "return ["command", b:cmd, a:findstart, a:base]
 
       silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
 

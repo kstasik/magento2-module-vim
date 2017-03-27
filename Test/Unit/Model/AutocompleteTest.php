@@ -17,4 +17,13 @@ class AutocompleteTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals(get_class($this->autocomplete), 'Kstasik\Vim\Model\Autocomplete');
     }
+
+    public function testAutocompleteResponse()
+    {
+        $result = $this->autocomplete->complete();
+
+        $this->assertGreaterThan(0, count($result));
+
+        $this->assertEquals([], $result);
+    }
 }

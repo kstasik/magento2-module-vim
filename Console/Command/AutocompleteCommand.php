@@ -43,6 +43,8 @@ class AutocompleteCommand extends Command
 
     const ATTRIBUTE_OPTION = 'attribute';
 
+    const BASE_OPTION = 'base';
+
     protected $autocomplete;
 
     public function __construct(Autocomplete $autocomplete)
@@ -65,6 +67,7 @@ class AutocompleteCommand extends Command
             ->addOption(self::TAG_OPTION, null, InputOption::VALUE_OPTIONAL, 'XML tag')
             ->addOption(self::FILE_OPTION, null, InputOption::VALUE_OPTIONAL, 'Filename with relative path')
             ->addOption(self::ATTRIBUTE_OPTION, null, InputOption::VALUE_OPTIONAL, 'XML attribute argument')
+            ->addOption(self::BASE_OPTION, null, InputOption::VALUE_OPTIONAL, 'Already typed base in the file')
             ;
     }
 
@@ -78,7 +81,9 @@ class AutocompleteCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $result = $this->autocomplete->complete();
+        $result = $this->autocomplete->complete(
+            $input->getOption(self::BASE_OPTION)
+        );
 
         $output->writeln(json_encode($result));
     }
