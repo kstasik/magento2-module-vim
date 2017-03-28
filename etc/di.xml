@@ -9,6 +9,8 @@
         </arguments>
     </type>
 
+    <preference for="Kstasik\Vim\Model\Config\ProcessorInterface" xsi:type="" />
+
     <type name="Kstasik\Vim\Model\Config\Generator">
         <arguments>
             <argument name="processors" xsi:type="array">

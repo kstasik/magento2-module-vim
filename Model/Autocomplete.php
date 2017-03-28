@@ -40,6 +40,48 @@ class Autocomplete
         $this->cache = $cache;
     }
 
+    public function getPreferenceTypeAttribute(string $base = null)
+    {
+        $result = $this->getAllTags();
+
+        // interfaces only
+        $result = array_filter($result, function ($path) use ($base) {
+            return preg_match('/Interface$/i', $path);
+        });
+
+        // base
+        if ($base) {
+            $result = array_filter($result, function ($path) use ($base) {
+                return preg_match('/'.preg_quote($base).'/i', $path);
+            });
+        }
+
+        $result = array_splice($result, 0, 1000);
+
+        return $result;
+    }
+
+    public function getPreferenceForAttribute(string $base = null)
+    {
+        $result = $this->getAllTags();
+
+        // interfaces only
+        $result = array_filter($result, function ($path) use ($base) {
+            return preg_match('/Interface$/i', $path);
+        });
+
+        // base
+        if ($base) {
+            $result = array_filter($result, function ($path) use ($base) {
+                return preg_match('/'.preg_quote($base).'/i', $path);
+            });
+        }
+
+        $result = array_splice($result, 0, 1000);
+
+        return $result;
+    }
+
     public function complete(string $base = null)
     {
         $result = $this->getAllTags();

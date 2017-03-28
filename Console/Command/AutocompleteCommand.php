@@ -81,9 +81,20 @@ class AutocompleteCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $result = $this->autocomplete->complete(
-            $input->getOption(self::BASE_OPTION)
-        );
+        if ($input->getOption(self::TAG_OPTION) == 'preference' && $input->getOption(self::ATTRIBUTE_OPTION) == 'for') {
+            $result = $this->autocomplete->getPreferenceForAttribute(
+                $input->getOption(self::BASE_OPTION)
+            );
+
+        } elseif ($input->getOption(self::TAG_OPTION) == 'preference' && $input->getOption(self::ATTRIBUTE_OPTION) == 'xsi:type') {
+            $result = $this->autocomplete->getPreferenceTypeAttribute(
+                $input->getOption(self::BASE_OPTION)
+            );
+        } else {
+            $result = $this->autocomplete->autocomplete(
+                $input->getOption(self::BASE_OPTION)
+            );
+        }
 
         $output->writeln(json_encode($result));
     }

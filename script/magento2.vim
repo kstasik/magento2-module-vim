@@ -265,7 +265,7 @@ function! magento2#XmlCompleteTags(findstart, base)
         let b:cmd = b:cmd." --".row[0]."='".row[1]."'"
       endfor
 
-      "return ["command", b:cmd, a:findstart, a:base]
+      return ["command", b:cmd, a:findstart, a:base]
 
       silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
 
