@@ -9,7 +9,7 @@
         </arguments>
     </type>
 
-    <preference for="Kstasik\Vim\Model\Config\ProcessorInterface" xsi:type="" />
+    <preference for="Kstasik\Vim\Model\Config\ProcessorInterface" type="Kstasik\Vim\Model\Config\Processor\Variables" />
 
     <type name="Kstasik\Vim\Model\Config\Generator">
         <arguments>

@@ -45,6 +45,8 @@ class AutocompleteCommand extends Command
 
     const BASE_OPTION = 'base';
 
+    const ADDITIONAL_OPTION = 'additional';
+
     protected $autocomplete;
 
     public function __construct(Autocomplete $autocomplete)
@@ -68,6 +70,7 @@ class AutocompleteCommand extends Command
             ->addOption(self::FILE_OPTION, null, InputOption::VALUE_OPTIONAL, 'Filename with relative path')
             ->addOption(self::ATTRIBUTE_OPTION, null, InputOption::VALUE_OPTIONAL, 'XML attribute argument')
             ->addOption(self::BASE_OPTION, null, InputOption::VALUE_OPTIONAL, 'Already typed base in the file')
+            ->addOption(self::ADDITIONAL_OPTION, null, InputOption::VALUE_OPTIONAL, 'Additional optional')
             ;
     }
 
@@ -85,13 +88,23 @@ class AutocompleteCommand extends Command
             $result = $this->autocomplete->getPreferenceForAttribute(
                 $input->getOption(self::BASE_OPTION)
             );
-
-        } elseif ($input->getOption(self::TAG_OPTION) == 'preference' && $input->getOption(self::ATTRIBUTE_OPTION) == 'xsi:type') {
-            $result = $this->autocomplete->getPreferenceTypeAttribute(
+        } elseif ($input->getOption(self::TAG_OPTION) == 'frontend_model') {
+            $result = $this->autocomplete->getClassesExtending(
+                $input->getOption(self::BASE_OPTION),
+                '\Magento\Config\Block\System\Config\Form\Fieldset'
+            );
+        } elseif ($input->getOption(self::TAG_OPTION) == 'module' && $input->getOption(self::ATTRIBUTE_OPTION) == 'name') {
+            $result = $this->autocomplete->getModules(
                 $input->getOption(self::BASE_OPTION)
             );
+
+        } elseif ($input->getOption(self::TAG_OPTION) == 'preference' && in_array($input->getOption(self::ATTRIBUTE_OPTION), ['xsi:type', 'type'])) {
+            $result = $this->autocomplete->getPreferenceTypeAttribute(
+                $input->getOption(self::BASE_OPTION),
+                $input->getOption(self::ADDITIONAL_OPTION)
+            );
         } else {
-            $result = $this->autocomplete->autocomplete(
+            $result = $this->autocomplete->complete(
                 $input->getOption(self::BASE_OPTION)
             );
         }

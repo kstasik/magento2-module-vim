@@ -13,6 +13,7 @@ class GeneratorTest extends \PHPUnit_Framework_TestCase
     {
         $this->generator = new Generator([]);
 
+        xdebug_break();
         $logger = $this->getMockBuilder('\Psr\Log\LoggerInterface')->getMock();
         $this->generator->setLogger($logger);
     }

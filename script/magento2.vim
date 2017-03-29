@@ -265,7 +265,7 @@ function! magento2#XmlCompleteTags(findstart, base)
         let b:cmd = b:cmd." --".row[0]."='".row[1]."'"
       endfor
 
-      return ["command", b:cmd, a:findstart, a:base]
+      "return ["command", b:cmd, a:findstart, a:base]
 
       silent let b:result =  substitute(system(b:cmd), '\n\+$', '', '')
 
@@ -322,6 +322,15 @@ function! magento2#GetContext()
   endif
 
   if has_key(context, "tag")
+    if has_key(context, "attribute") && ( context["attribute"] == 'xsi:type' || context["attribute"] == 'type' ) && context["tag"] == "preference"
+      let line = getline('.')
+
+      let l:attribute = matchlist(line, 'for="\([^"]*\)"')
+      if len(l:attribute) > 1
+        let l:context["additional"] = l:attribute[1]
+      endif
+    endif
+
     return context
   endif
 

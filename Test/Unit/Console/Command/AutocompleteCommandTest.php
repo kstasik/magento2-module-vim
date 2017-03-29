@@ -32,7 +32,10 @@ class AutocompleteCommandTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $this->autocompleteMock =
-            $this->getMockBuilder('\Kstasik\Vim\Model\Autocomplete')->getMock();
+            $this->getMockBuilder('\Kstasik\Vim\Model\Autocomplete')
+            ->disableOriginalConstructor()
+            ->setMethods(['autocomplete'])
+            ->getMock();
 
         $this->command = new AutocompleteCommand($this->autocompleteMock);
     }
